@@ -253,7 +253,7 @@ data was heavily used in their benchmark datasets.
 
             train_dataset_count = len(train_dataset)            
             test_dataset_count = len(test_dataset)
-            contaminate_ratio = common_docs / test_dataset_count
+            contaminate_ratio = common_docs_count / test_dataset_count
 
             col1, col2, col3, col4 = st.columns(4)
             col1.metric(label="Train Set Size", value="%d" % train_dataset_count)

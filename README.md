@@ -5,6 +5,10 @@
 
 The purpose of this repository is to let people evaluate the quality of datasets on Hugging Face. It retrieves parquet files from Hugging Face, identifies the junk data, duplication, contamination, biased content, and other quality issues within a given dataset.
 
+## Related Resources
+
+* [Google Colab Notebook](https://colab.research.google.com/drive/1c8rWB2gtUrBHQcmmvA_NAXxc7Cexn1vM?usp=sharing)
+
 
 ## Instructions
 
