@@ -5,14 +5,6 @@
 
 The purpose of this repository is to let people evaluate the quality of datasets on Hugging Face. It retrieves parquet files from Hugging Face, identifies the junk data, duplication, contamination, biased content, and other quality issues within a given dataset.
 
-## Covered Dimension
-
-* Junk Data
-* Short Document
-* Duplication
-* Contamination
-* Biased Content
-
 
 ## Instructions
 
@@ -37,10 +29,9 @@ python -m streamlit run app.py
 
 ## Todos
 
-[ ] Introduce more dimensions to evaluate the dataset quality
-[ ] Optimize the deduplication example using parallel computing technique
-[ ] More robust junk data detecting 
-[ ] Use a classifier to evaluate the quality of data
-[ ] Test the code with larger dataset in a cluster environment
-[ ] More data frame manipulation backend: e.g. Dask
-# HuggingFace-Datasets-Text-Quality-Analysis
+- [ ] Introduce more dimensions to evaluate the dataset quality
+- [ ] Optimize the deduplication example using parallel computing technique
+- [ ] More robust junk data detecting 
+- [ ] Use a classifier to evaluate the quality of data
+- [ ] Test the code with larger dataset in a cluster environment
+- [ ] More data frame manipulation backend: e.g. Dask

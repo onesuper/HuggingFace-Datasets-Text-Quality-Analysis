@@ -1,0 +1,7 @@
+numpy
+pandas
+xorbits
+matplotlib
+datasketch
+nltk
+transfomers
