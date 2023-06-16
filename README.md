@@ -9,10 +9,10 @@ The purpose of this repository is to let people evaluate the quality of datasets
 
 * [Google Colab Notebook](https://colab.research.google.com/drive/1c8rWB2gtUrBHQcmmvA_NAXxc7Cexn1vM?usp=sharing)
 
+## Running the app
+### Instructions
 
-## Instructions
-
-1.Prerequisites
+1. Prerequisites
 Note that the code only works `Python >= 3.9` and `streamlit >= 1.23.1`
 
 ```
@@ -26,10 +26,15 @@ $ cd HuggingFace-Datasets-Text-Quality-Analysis
 $ pip install -r requirements.txt
 ```
 
-3.Run Streamlit application
+3. Run Streamlit application
 ```
 python -m streamlit run app.py
 ```
+
+### Need to know
+
+When the dataset you download from Hugging Face is too large, running the application may exceed the memory of your machine and causes some errors. Sample the data or refer to some libraries that can run Pandas on a cluster, such as Xorbits, Dask.
+
 
 ## Todos
 
