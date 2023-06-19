@@ -39,6 +39,7 @@ When the dataset you download from Hugging Face is too large, running the applic
 ## Todos
 
 - [ ] Introduce more dimensions to evaluate the dataset quality
+  - Another indicator of poor quality data is excessive repetition of certain words or phrases within a document (Gopher)
 - [ ] Optimize the deduplication example using parallel computing technique
 - [ ] More robust junk data detecting 
 - [ ] Use a classifier to evaluate the quality of data
