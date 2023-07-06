@@ -4,12 +4,11 @@ import os
 
 enable_xorbits = False
 
-
 if enable_xorbits:
     import xorbits.pandas as pd
     import xorbits.numpy as np
     import xorbits
-    xorbits.init(n_worker=1, n_cpu=2)
+    xorbits.init()
 else:
     import pandas as pd
     import numpy as np
@@ -69,7 +68,7 @@ with st.spinner('Loading meta'):
     sample_rate_option = st.sidebar.slider('Select sample rate', value=0.05, min_value=0.1, max_value=1.0, step=0.1)
 
 tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs(
-    ["Introduction", "Junk Data🤖", "Contamination🧹", "Short Documents🌐", "Biased Content🛡️", "Duplication🔍"])
+    ["Introduction", "Junk Data🤖", "Short Documents🌐", "Biased Content🛡️", "Contamination🧹", "Duplication🔍"])
 with tab0:
 
     st.markdown(
@@ -205,7 +204,120 @@ This piece of Python code calculated a measure of "impurity" in text documents, 
         )
 
 
-with tab2:    
+with tab2:
+    st.header('Toxic Content')
+    st.markdown('''
+It is crucial in the training of language models to be vigilant and potentially apply tools 
+to exclude toxic content from the pre-training datasets. This practice helps to
+prevent the models from demonstrating bias or generating detrimental content in subsequent applications.
+
+One approach to address this issue is by scanning the text for **offensive words**. 
+For instance, the creators of the C4 dataset have implemented such a 
+filtering mechanism. The follow code references this 
+[word ](https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/blob/master/en) that they open source.
+
+The following code utilizes the word list to quantify the "biased content ratio" in the dataset.
+
+    ''')
+
+    metrics, code = st.tabs(['Metrics', 'Code'])
+    with metrics:
+        with st.spinner('Calculating toxic ratio...'):
+            df = datasets['train']
+
+            with open('./List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words', 'r') as f:
+                lines = f.readlines()
+
+            banned_words = [line.rstrip('\n') for line in lines]
+            df['banned_words_in_text'] = df['text'].apply(lambda text: [word for word in banned_words if word in text.lower().split()])    
+            df['matches'] = df['banned_words_in_text'].apply(lambda words: len(words) > 0)
+            total_num_docs = len(df)
+            biased_num_docs = df['matches'].sum()
+            biased_content_ratio = biased_num_docs / total_num_docs
+            col1, col2, col3 = st.columns(3)
+
+            col1.metric(label="Total Doc Count", value="%d" % total_num_docs)
+            col2.metric(label="Biased Doc Count", value="%d" % biased_num_docs)
+            col3.metric(label="Biased Ratio", value="%.2f%%" % (biased_content_ratio * 100))
+            st.dataframe(df[df['matches']][['text', 'banned_words_in_text']][:20])
+    with code:
+        st.code(
+            '''
+            with open('./List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words', 'r') as f:
+                lines = f.readlines()
+
+            banned_words = [line.rstrip('\n') for line in lines]
+            df['banned_words_in_text'] = df['text'].apply(lambda text: [word for word in banned_words if word in text.lower().split()])    
+            total_num_docs = len(df)
+            df['matches'] = df['banned_words_in_text'].apply(lambda words: len(words) > 0)
+            biased_num_docs = df['matches'].sum()
+            biased_content_ratio = biased_num_docs / total_num_docs            
+            '''
+        )
+
+
+
+with tab3:
+    st.header("Too-Short Documents")
+
+    st.markdown('''
+The aim of language modeling is to master the generation of text based on preceding tokens. 
+In this scenario, eliminating extremely brief documents (text consisting of fewer than approximately
+ 100 tokens) from the corpus could aid in the reduction of noise, by producing contiguous text to 
+ model dependencies within the text.
+
+
+ Use the Hugging Face Transformers library to tokenize text and then calculate the proportion
+ of documents that are "too short" in a dataset. This example converts text into tokens that the BERT
+ model can understand. Choose a tokenizer for your model.
+    ''')
+    metrics, code = st.tabs(['Metrics', 'Code'])
+
+    with metrics:
+        with st.spinner('Calculating too-short ratio...'):
+            from transformers import BertTokenizer
+
+            tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+            df = datasets['train']
+            # Create a new column with the number of tokens for each text
+            df['text_length'] = df['text'].apply(lambda text: len(tokenizer.tokenize(text)))
+            total_num_docs = len(df)
+            too_short_docs = len(df[df['text_length'] < 100]) 
+            too_short_doc_ratio = too_short_docs / total_num_docs
+
+            col1, col2, col3 = st.columns(3)
+            col1.metric(label="Too-Short Doc Count", value="%d" % too_short_docs)
+            col2.metric(label="Total Doc Count", value="%d" % total_num_docs)
+            col3.metric(label="Too Short Doc Ratio", value="%.2f%%" % (too_short_doc_ratio * 100))
+
+    #         col1, _ = st.columns([2, 1])
+
+    #         import seaborn as sns
+    #         import matplotlib.pyplot as plt
+    #         fig, ax = plt.subplots(figsize=(10, 5))
+    #         ax.set_title('Distribution of text length (in tokens)')
+    #         sns.histplot(data=df, x='text_length', ax=ax)
+    #         plt.axvline(100, color='r', linestyle='--')
+    #         col1.pyplot(fig)
+    with code:
+        st.code(
+        '''
+        from transformers import BertTokenizer
+
+        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+        df = datasets['train']
+        # Create a new column with the number of tokens for each text
+        df['text_length'] = df['text'].apply(lambda text: len(tokenizer.tokenize(text)))
+        total_num_docs = len(df)
+        too_short_docs = len(df[df['text_length'] < 100]) 
+        too_short_doc_ratio = too_short_docs / total_num_docs            
+        '''
+        )
+
+
+with tab4:
     st.header('Contamination')
 
     st.markdown('''
@@ -308,117 +420,6 @@ data was heavily used in their benchmark datasets.
             contaminate_ratio = duplicates_count / test_dataset_count         
             '''
         )
-
-with tab3:
-    st.header("Too-Short Documents")
-
-    st.markdown('''
-The aim of language modeling is to master the generation of text based on preceding tokens. 
-In this scenario, eliminating extremely brief documents (text consisting of fewer than approximately
- 100 tokens) from the corpus could aid in the reduction of noise, by producing contiguous text to 
- model dependencies within the text.
-
-
- Use the Hugging Face Transformers library to tokenize text and then calculate the proportion
- of documents that are "too short" in a dataset. This example converts text into tokens that the BERT
- model can understand. Choose a tokenizer for your model.
-    ''')
-    metrics, code = st.tabs(['Metrics', 'Code'])
-
-    with metrics:
-        with st.spinner('Calculating too-short ratio...'):
-            from transformers import BertTokenizer
-
-            tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-
-            df = datasets['train']
-            # Create a new column with the number of tokens for each text
-            df['text_length'] = df['text'].apply(lambda text: len(tokenizer.tokenize(text)))
-            total_num_docs = len(df)
-            too_short_docs = len(df[df['text_length'] < 100]) 
-            too_short_doc_ratio = too_short_docs / total_num_docs
-
-            col1, col2, col3 = st.columns(3)
-            col1.metric(label="Too-Short Doc Count", value="%d" % too_short_docs)
-            col2.metric(label="Total Doc Count", value="%d" % total_num_docs)
-            col3.metric(label="Too Short Doc Ratio", value="%.2f%%" % (too_short_doc_ratio * 100))
-
-    #         col1, _ = st.columns([2, 1])
-
-    #         import seaborn as sns
-    #         import matplotlib.pyplot as plt
-    #         fig, ax = plt.subplots(figsize=(10, 5))
-    #         ax.set_title('Distribution of text length (in tokens)')
-    #         sns.histplot(data=df, x='text_length', ax=ax)
-    #         plt.axvline(100, color='r', linestyle='--')
-    #         col1.pyplot(fig)
-    with code:
-        st.code(
-        '''
-        from transformers import BertTokenizer
-
-        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-
-        df = datasets['train']
-        # Create a new column with the number of tokens for each text
-        df['text_length'] = df['text'].apply(lambda text: len(tokenizer.tokenize(text)))
-        total_num_docs = len(df)
-        too_short_docs = len(df[df['text_length'] < 100]) 
-        too_short_doc_ratio = too_short_docs / total_num_docs            
-        '''
-        )
-
-with tab4:    
-    st.header('Toxic Content')
-    st.markdown('''
-It is crucial in the training of language models to be vigilant and potentially apply tools 
-to exclude toxic content from the pre-training datasets. This practice helps to
-prevent the models from demonstrating bias or generating detrimental content in subsequent applications.
-
-One approach to address this issue is by scanning the text for **offensive words**. 
-For instance, the creators of the C4 dataset have implemented such a 
-filtering mechanism. The follow code references this 
-[word ](https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/blob/master/en) that they open source.
-
-The following code utilizes the word list to quantify the "biased content ratio" in the dataset.
-
-    ''')
-
-    metrics, code = st.tabs(['Metrics', 'Code'])
-    with metrics:
-        with st.spinner('Calculating toxic ratio...'):
-            df = datasets['train']
-
-            with open('./List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words', 'r') as f:
-                lines = f.readlines()
-
-            banned_words = [line.rstrip('\n') for line in lines]
-            df['banned_words_in_text'] = df['text'].apply(lambda text: [word for word in banned_words if word in text.lower().split()])    
-            df['matches'] = df['banned_words_in_text'].apply(lambda words: len(words) > 0)
-            total_num_docs = len(df)
-            biased_num_docs = df['matches'].sum()
-            biased_content_ratio = biased_num_docs / total_num_docs
-            col1, col2, col3 = st.columns(3)
-
-            col1.metric(label="Total Doc Count", value="%d" % total_num_docs)
-            col2.metric(label="Biased Doc Count", value="%d" % biased_num_docs)
-            col3.metric(label="Biased Ratio", value="%.2f%%" % (biased_content_ratio * 100))
-            st.dataframe(df[df['matches']][['text', 'banned_words_in_text']][:20])
-    with code:
-        st.code(
-            '''
-            with open('./List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words', 'r') as f:
-                lines = f.readlines()
-
-            banned_words = [line.rstrip('\n') for line in lines]
-            df['banned_words_in_text'] = df['text'].apply(lambda text: [word for word in banned_words if word in text.lower().split()])    
-            total_num_docs = len(df)
-            df['matches'] = df['banned_words_in_text'].apply(lambda words: len(words) > 0)
-            biased_num_docs = df['matches'].sum()
-            biased_content_ratio = biased_num_docs / total_num_docs            
-            '''
-        )
-
 
 
 with tab5:
