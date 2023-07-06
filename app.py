@@ -1,15 +1,7 @@
 import streamlit as st
 import requests
-import os
 
-enable_xorbits = False
-
-if enable_xorbits:
-    import xorbits
-    xorbits.init()
-    import xorbits.pandas as pd 
-else:
-    import pandas as pd
+enable_xorbits = True
 
 st.set_page_config(page_title="Analyzing Text Corpus on Hugging Face", page_icon=":bar_chart:", layout="wide")
 st.sidebar.title('A Tool for Analyzing Text Corpus on Hugging Face')
@@ -25,28 +17,39 @@ st.sidebar.header("Please Paste The HF Dataset Name Here:")
 
 #@st.cache_data
 def load_dataset(j, name, fraction):
+    import os
 
-    if not os.path.exists('train.gzip'):
+    if enable_xorbits:
+        import xorbits
+        xorbits.init()
+        import xorbits.pandas as pd 
+    else:
+        import pandas as pd
+
+    if not os.path.exists('%s-train.gzip' % name):
         with st.spinner('Downloading file from remote server'):
             import pandas
             train_urls = [f['url'] for f in j['parquet_files'] if f['config'] == name and f['split'] == 'train']
             train_dataset = pandas.concat([pandas.read_parquet(url, engine='pyarrow') for url in train_urls], ignore_index=True)
-            train_dataset.to_parquet('train.gzip')
+            train_dataset.to_parquet('%s-train.gzip' % name)
 
-    if not os.path.exists('test.gzip'):
+    if not os.path.exists('%s-test.gzip' % name):
         with st.spinner('Downloading file from remote server'):
             import pandas
             test_urls = [f['url'] for f in j['parquet_files'] if f['config'] == name and f['split'] == 'validation']
             test_dataset = pandas.concat([pandas.read_parquet(url, engine='pyarrow') for url in test_urls], ignore_index=True)
-            test_dataset.to_parquet('test.gzip')
+            test_dataset.to_parquet('%s-test.gzip' % name)
 
-    train_dataset = pd.read_parquet('train.gzip', engine='pyarrow')
+    train_dataset = pd.read_parquet('%s-train.gzip' % name, engine='pyarrow')
+    test_dataset = pd.read_parquet('%s-test.gzip' % name, engine='pyarrow')
 
-    test_dataset = pd.read_parquet('test.gzip', engine='pyarrow')
+    if enable_xorbits:
+        train_dataset.rebalance()
+        test_dataset.rebalance()
 
     dataset = {
-        "train": train_dataset[:int(len(train_dataset)*fraction)],
-        "test": test_dataset[:int(len(test_dataset)*fraction)],
+        "train": train_dataset.sample(frac=fraction),
+        "test": test_dataset.sample(frac=fraction),
     }
     
     return dataset
@@ -351,9 +354,9 @@ data was heavily used in their benchmark datasets.
 
             def process_data(df):
                 minhashes = {}
-                for idx, r in df.iterrows():
+                for idx, text in enumerate(df['text']):
                     minhash = MinHash(num_perm=128)
-                    for d in ngrams(r['text'], 13):
+                    for d in ngrams(text, 13):
                         s = "".join(d).encode('utf-8')
                         minhash.update(s)
                     minhashes[idx] = minhash
