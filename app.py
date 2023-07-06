@@ -68,7 +68,7 @@ with st.spinner('Loading meta'):
     sample_rate_option = st.sidebar.slider('Select sample rate', value=0.05, min_value=0.1, max_value=1.0, step=0.1)
 
 tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs(
-    ["Introduction", "Junk Data🤖", "Short Documents🌐", "Biased Content🛡️", "Contamination🧹", "Duplication🔍"])
+    ["Introduction", "Junk Data🤖", "Biased Content🛡️", "Short Documents🌐", "Contamination🧹", "Duplication🔍"])
 with tab0:
 
     st.markdown(
