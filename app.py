@@ -234,52 +234,78 @@ data was heavily used in their benchmark datasets.
     with metrics:
 
         with st.spinner('Calculating contamination ratio...'):
-
             train_dataset = datasets['train']
             test_dataset = datasets['test']
+
             from nltk import ngrams
-            def generate_ngrams(text, n=8):
-                return set(ngrams(text.split(), n))
+            from datasketch import MinHash, MinHashLSH
 
-            train_dataset['ngrams'] = train_dataset['text'].apply(generate_ngrams)
-            test_dataset['ngrams'] = test_dataset['text'].apply(generate_ngrams)
+            def process_data(df):
+                minhashes = {}
+                for idx, r in df.iterrows():
+                    minhash = MinHash(num_perm=128)
+                    for d in ngrams(r['text'], 13):
+                        s = "".join(d).encode('utf-8')
+                        minhash.update(s)
+                    minhashes[idx] = minhash
+                return minhashes
 
-            # Creating a set of n-grams in the train set
-            train_ngrams = set.union(*train_dataset['ngrams'])
+            train_minhashes = process_data(train_dataset)
+            test_minhashes = process_data(test_dataset)
 
-            # Creating a boolean mask marking documents in the test set that have appeared in the train set
-            common_docs = test_dataset['ngrams'].apply(lambda x: not x.isdisjoint(train_ngrams))
-            common_docs_count = common_docs.sum()
+            lsh = MinHashLSH(threshold=0.8, num_perm=128)
+
+            for idx, minhash in train_minhashes.items():
+                lsh.insert(idx, minhash)
+
+            duplicates_count = 0
+            for idx, minhash in test_minhashes.items():
+                result = lsh.query(minhash)
+                if len(result) > 0:
+                    duplicates_count += 1
 
             train_dataset_count = len(train_dataset)            
             test_dataset_count = len(test_dataset)
-            contaminate_ratio = common_docs_count / test_dataset_count
+            contaminate_ratio = duplicates_count / test_dataset_count
 
             col1, col2, col3, col4 = st.columns(4)
             col1.metric(label="Train Set Size", value="%d" % train_dataset_count)
             col2.metric(label="Test Set Size", value="%d" % test_dataset_count)
-            col3.metric(label="Overlapped Docs", value="%d" % common_docs_count)
+            col3.metric(label="Overlapped Docs", value="%d" % duplicates_count)
             col4.metric(label="Contaminated Ratio", value="%.2f%%" % (contaminate_ratio * 100))
     with code:
         st.code(
             '''
             from nltk import ngrams
-            def generate_ngrams(text, n=8):
-                return set(ngrams(text.split(), n))
+            from datasketch import MinHash, MinHashLSH
 
-            train_dataset['ngrams'] = train_dataset['text'].apply(generate_ngrams)
-            test_dataset['ngrams'] = test_dataset['text'].apply(generate_ngrams)
+            def process_data(df):
+                minhashes = {}
+                for idx, r in df.iterrows():
+                    minhash = MinHash(num_perm=128)
+                    for d in ngrams(r['text'], 13):
+                        s = "".join(d).encode('utf-8')
+                        minhash.update(s)
+                    minhashes[idx] = minhash
+                return minhashes
 
-            # Creating a set of n-grams in the train set
-            train_ngrams = set.union(*train_dataset['ngrams'])
+            train_minhashes = process_data(train_dataset)
+            test_minhashes = process_data(test_dataset)
 
-            # Creating a boolean mask marking documents in the test set that have appeared in the train set
-            common_docs = test_dataset['ngrams'].apply(lambda x: not x.isdisjoint(train_ngrams))
-            common_docs_count = common_docs.sum()
+            lsh = MinHashLSH(threshold=0.8, num_perm=128)
+
+            for idx, minhash in train_minhashes.items():
+                lsh.insert(idx, minhash)
+
+            duplicates_count = 0
+            for idx, minhash in test_minhashes.items():
+                result = lsh.query(minhash)
+                if len(result) > 0:
+                    duplicates_count += 1
 
             train_dataset_count = len(train_dataset)            
             test_dataset_count = len(test_dataset)
-            contaminate_ratio = common_docs / test_dataset_count            
+            contaminate_ratio = duplicates_count / test_dataset_count         
             '''
         )
 
