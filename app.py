@@ -5,13 +5,11 @@ import os
 enable_xorbits = False
 
 if enable_xorbits:
-    import xorbits.pandas as pd
-    import xorbits.numpy as np
     import xorbits
     xorbits.init()
+    import xorbits.pandas as pd 
 else:
     import pandas as pd
-    import numpy as np
 
 st.set_page_config(page_title="Analyzing Text Corpus on Hugging Face", page_icon=":bar_chart:", layout="wide")
 st.sidebar.title('A Tool for Analyzing Text Corpus on Hugging Face')
@@ -65,7 +63,7 @@ with st.spinner('Loading meta'):
     hf_datasets = get_hugging_face_dataset(dataset_name)
     subsets = set([x['config'] for x in hf_datasets['parquet_files']])
     subset_option = st.sidebar.selectbox("Choose a subset", subsets)
-    sample_rate_option = st.sidebar.slider('Select sample rate', value=0.05, min_value=0.1, max_value=1.0, step=0.1)
+    sample_rate_option = st.sidebar.slider('Select sample rate', value=0.01, min_value=0.1, max_value=1.0, step=0.1)
 
 tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs(
     ["Introduction", "Junk Data🤖", "Biased Content🛡️", "Short Documents🌐", "Contamination🧹", "Duplication🔍"])
@@ -159,7 +157,6 @@ This piece of Python code calculated a measure of "impurity" in text documents, 
 
         with st.spinner('Calculating impurity ratio...'):
             df = datasets['train']
-
             import re
             RE_SUSPICIOUS = re.compile(r'[&#<>{}\[\]\\]')
 
